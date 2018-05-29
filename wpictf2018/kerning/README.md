@@ -121,4 +121,4 @@ After we let it do its thing for a few minutes, we get the answer.
 ![Script working](https://i.imgur.com/QKmNaif.png)
 
 
-WPI{I_majored_in_typography
+WPI{I_majored_in_typography}
