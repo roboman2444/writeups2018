@@ -36,4 +36,66 @@ Usage: ./kerning WPI{some_Fl4g-to 7ry}
  
  ## Getting the flag
  
- TODO
+ We can count the number of times it goes through the loop as an indicator if we got the correct sequence of letters. The loop exits at the first "wrong" vertical slice. A timing attack would work on this, but it is much simpler to use ltrace to count the number of calls to MD5_Final.
+
+```python
+#! /usr/bin/python2
+from pwn import *
+
+curstring = 'WPI{'
+
+while curstring[-1] is not '}':
+	top = [0, 0]
+	for i in range(0, 127):
+		c = chr(i)
+		teststring = curstring + c
+		s = process(["ltrace", "-e", "MD5_Final", "./kerning", teststring])
+		res = s.recvall().count("MD5_Final")
+		s.close()
+
+		if res >= top[0]:
+			top[0] = res
+			top[1] = c
+	curstring += top[1]
+	print(str(top[0]) + " " + top[1] + " " + curstring)
+```
+
+
+
+This works for the first few words, but the first character of the third word has a bunch of different possibilities that all result the same score.
+
+
+I remade my "bruteforcer" to keep a list of all the attempts that shared the same highscore. This got through that issue and ran perfectly.
+
+
+```python
+#! /usr/bin/python2
+from pwn import *
+
+curlist = [['WPI{', 0]]
+
+maxscore = 0
+
+while maxscore < 165: ## was origionally just while True, but this check just makes sure the program doesnt run on forever
+	#Populate list
+	tlist = []
+	for j in curlist:
+		tlist.append(j)
+		for i in range(0, 127):
+			tlist.append([j[0]+chr(i), 0])
+
+	#score list
+	jlist = []
+	for j in tlist:
+		if j[1] == 0: #only calculate score if not already calculated
+			s = process(["ltrace", "-e", "MD5_Final", "./kerning", j[0]])
+			j[1] = s.recvall().count("MD5_Final")
+			s.close()
+		if maxscore < j[1]: maxscore = j[1]
+		jlist.append(j)
+
+	#remove anything that isnt tied with the high score
+	curlist = [j for j in jlist if j[1] >= maxscore]
+	print(curlist)
+
+```
